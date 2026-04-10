@@ -40,6 +40,10 @@ Monthly prediction panels were formed from month-end observations.
 
 The monthly train period spans 2011-01-31 to 2019-10-31, and the monthly test period spans 2020-12-31 to 2022-04-29.
 
+The month-end design is intentional rather than incidental. For each stock, the model uses the last trading day of month $t$ as the decision date and predicts the return from month-end $t$ to month-end $t+1$. This is a natural setup for a monthly rebalancing strategy and aligns well with the frequency at which many accounting variables evolve. Although the final modelling panel keeps only one row per stock per month, the information from earlier trading days is not discarded in an economic sense. Those earlier observations are embedded in the engineered predictors themselves, including one-month and three-month returns, twelve-month momentum, volatility, MACD, ATR, OBV, and the month-end price level from which the next-month return is measured. The design therefore reduces repeated daily observations while still retaining information accumulated over the month.
+
+This monthly framework is also especially defensible for fundamentals. Since accounting variables are typically updated quarterly and were additionally lagged in this project to reduce look-ahead bias, a daily prediction horizon would create many observations with nearly unchanged fundamental inputs. Sampling at month-end provides a cleaner alignment between information arrival, portfolio decision timing, and forecast horizon.
+
 ### Market Regime Identification
 
 Market regimes were estimated using a two-state Gaussian Hidden Markov Model. The model was fitted on four market-wide variables:
@@ -106,6 +110,8 @@ For the tree-based models, three regime treatments were considered:
 3. Regime-aware design, where modelling or prediction was conditioned on the inferred state
 
 Model evaluation focused on both forecast accuracy and cross-sectional ranking quality. The metrics reported were MSE, RMSE, MAE, $R^2$, out-of-sample $R^2$ relative to a historical-mean benchmark, denoted $R^2_{oos}$, and the Spearman Information Coefficient (IC). Because the project’s objective is predictive ranking and benchmark-relative performance, Test IC and Test $R^2_{oos}$ were treated as the primary summary measures.
+
+The resulting interpretation is cross-sectional and monthly: at each month-end, the model observes a stock-specific feature snapshot, ranks stocks or predicts their next-month return, and is then evaluated on the return realised by the next month-end. This is different from averaging all trading days within the month. Instead, the procedure uses month-end sampling after daily features have already accumulated within-month information.
 
 ### Supplementary Econometric Analysis
 
@@ -235,6 +241,8 @@ This indicates that higher leverage was associated with lower subsequent returns
 The central contribution of this study is to show that the usefulness of market regime information depends on the type of signal being modelled. Regime conditioning was not uniformly beneficial across all specifications. Instead, its value emerged most clearly when applied to a screened set of fundamental variables. In that setting, the regime-aware XGBoost model produced the best overall benchmark-relative performance, suggesting that the cross-sectional pricing of balance-sheet strength, profitability, and valuation characteristics is state dependent.
 
 By contrast, the strongest technical result came from the LSTM applied to the cleaner technical feature set. This outcome is consistent with the view that technical signals contain temporal structure that is not fully captured by static tree models. The LSTM’s ability to outperform tree-based alternatives on technical indicators suggests that sequence modelling is appropriate when the predictors themselves are constructed from dynamic price patterns.
+
+An additional regime-aware LSTM extension did not strengthen this conclusion. When separate LSTM models were trained by regime, performance deteriorated on the cleaner technical and cleaner fundamental feature sets, and only the combined all-features case showed a modest IC improvement while benchmark-relative fit remained negative. This suggests that the LSTM benefits more from using regime as contextual information within a shared sequence-learning problem than from splitting the time series into smaller regime-specific training samples. In other words, for sequence models, explicit regime partitioning appears to reduce sample efficiency more than it improves state-specific pattern extraction.
 
 The contrast between the two best-performing routes is analytically useful. The technical route provides the strongest ranking result, while the fundamental regime-aware route provides the strongest benchmark-relative result and the most economically interpretable story. For a finance-oriented written report, the latter route is arguably more compelling because it combines improved predictive performance with a clear mechanism and supporting econometric evidence.
 
